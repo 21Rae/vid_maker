@@ -1,0 +1,5 @@
+{
+  "name": "Lumina - Veo Video Generator",
+  "description": "A high-end text and image to video generator powered by Google's Veo model.",
+  "requestFramePermissions": []
+}
