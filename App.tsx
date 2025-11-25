@@ -73,7 +73,7 @@ const App: React.FC = () => {
             <Sparkles className="text-white" size={20} />
           </div>
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-zinc-400 tracking-tight">
-            Lumina
+            Sirz Video Maker
           </h1>
         </div>
         {hasApiKey && (

@@ -8,7 +8,11 @@ import { GenerationRequest, GeneratedVideo } from '../types';
 export const generateVideo = async (request: GenerationRequest): Promise<GeneratedVideo> => {
   // CRITICAL: Always instantiate a new client to pick up the latest selected API key from the environment.
   // The environment variable process.env.API_KEY is injected by the platform after selection.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+      throw new Error("API Key is missing. Please select a valid paid API key.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
 
   const { prompt, image, config } = request;
 
@@ -19,9 +23,10 @@ export const generateVideo = async (request: GenerationRequest): Promise<Generat
   try {
     if (image) {
       // Image-to-Video or Text-and-Image-to-Video
+      // Prompt is optional when image is provided.
       operation = await ai.models.generateVideos({
         model: config.model,
-        prompt: prompt || undefined, // Prompt is optional if image is provided, but we usually want both
+        prompt: prompt ? prompt : undefined, 
         image: {
           imageBytes: image.data,
           mimeType: image.mimeType,
@@ -34,6 +39,10 @@ export const generateVideo = async (request: GenerationRequest): Promise<Generat
       });
     } else {
       // Text-to-Video
+      // Prompt is required.
+      if (!prompt) {
+          throw new Error("Prompt is required for text-to-video generation.");
+      }
       operation = await ai.models.generateVideos({
         model: config.model,
         prompt: prompt,
@@ -45,6 +54,8 @@ export const generateVideo = async (request: GenerationRequest): Promise<Generat
       });
     }
 
+    console.log("Operation started:", operation);
+
     // Polling loop
     // Video generation can take time (minutes), so we poll gracefully.
     while (!operation.done) {
@@ -52,18 +63,24 @@ export const generateVideo = async (request: GenerationRequest): Promise<Generat
       // Guidelines recommend 10s for video operations
       await new Promise((resolve) => setTimeout(resolve, 10000));
       console.log("Polling for video status...");
+      
+      // Pass the operation object itself to update status
       operation = await ai.operations.getVideosOperation({ operation: operation });
     }
 
     if (operation.error) {
+      console.error("Operation failed with error:", operation.error);
       throw new Error(operation.error.message || "Unknown error during video generation");
     }
 
     const video = operation.response?.generatedVideos?.[0]?.video;
 
     if (!video || !video.uri) {
+      console.error("Operation done but no video URI found:", operation);
       throw new Error("No video URI returned from the operation.");
     }
+
+    console.log("Video generation successful:", video.uri);
 
     return {
       uri: video.uri,
