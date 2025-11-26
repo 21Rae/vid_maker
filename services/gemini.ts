@@ -9,8 +9,14 @@ export const generateVideo = async (request: GenerationRequest): Promise<Generat
   // CRITICAL: Always instantiate a new client to pick up the latest selected API key from the environment.
   // The environment variable process.env.API_KEY is injected by the platform after selection.
   const apiKey = process.env.API_KEY;
+  
   if (!apiKey) {
-      throw new Error("API Key is missing. Please select a valid paid API key.");
+      // Differentiate error message based on environment
+      if (typeof window !== 'undefined' && window.aistudio) {
+         throw new Error("API Key is missing. Please select a valid paid API key.");
+      } else {
+         throw new Error("API Key is missing. Please add 'API_KEY' to your .env file or Vercel Environment Variables.");
+      }
   }
   const ai = new GoogleGenAI({ apiKey });
 
