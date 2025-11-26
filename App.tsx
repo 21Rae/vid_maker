@@ -7,18 +7,22 @@ import { AppState, GeneratedVideo, GenerationRequest } from './types';
 import { Sparkles, AlertCircle } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [hasApiKey, setHasApiKey] = useState<boolean>(false);
+  // Initialize state based on environment presence.
+  // If window.aistudio is undefined (e.g. Vercel, Localhost), we default to TRUE to show the UI.
+  // If window.aistudio is defined (AI Studio), we default to FALSE and wait for verification.
+  const [hasApiKey, setHasApiKey] = useState<boolean>(() => !window.aistudio);
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [resultVideo, setResultVideo] = useState<GeneratedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Initial check for API Key presence
+  // Check for API Key presence in AI Studio
   useEffect(() => {
     const checkKey = async () => {
       if (window.aistudio && window.aistudio.hasSelectedApiKey) {
         const hasKey = await window.aistudio.hasSelectedApiKey();
         setHasApiKey(hasKey);
       }
+      // If not in AI Studio, we rely on the initial state being true.
     };
     checkKey();
   }, []);
@@ -43,7 +47,8 @@ const App: React.FC = () => {
       setAppState(AppState.ERROR);
       
       // If the error implies the key is invalid/missing, reset key state
-      if (err.message && (err.message.includes("API Key") || err.message.includes("Requested entity was not found"))) {
+      // ONLY if we are in an environment that supports selecting keys.
+      if (window.aistudio && err.message && (err.message.includes("API Key") || err.message.includes("Requested entity was not found"))) {
         setHasApiKey(false);
       }
     }
